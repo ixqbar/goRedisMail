@@ -29,7 +29,8 @@ v0.0.2
 ```
 * 邮件密码建议开启授权码
 * qq邮件请参考 https://service.mail.qq.com/cgi-bin/help?subtype=1&&no=1001256&&id=28
-* 163邮件请参考 http://help.mail.163.com/faq.do?m=list&categoryID=197
+* 126/yeah/163邮件请参考 http://help.mail.163.com/faq.do?m=list&categoryID=197
+* gmail邮件请参考 https://support.google.com/mail/answer/78754
 
 ### example
 ```
