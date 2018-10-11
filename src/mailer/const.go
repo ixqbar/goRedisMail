@@ -1,0 +1,4 @@
+package mailer
+
+const VERSION = "0.0.1"
+const CHECK_MAIL_CONNECTION_STATE_INTERVAL_SECONDS = 30
