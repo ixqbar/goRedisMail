@@ -19,12 +19,14 @@ type TMailHandler struct {
 	stopChannel chan bool
 	mailMessageItemChannel chan *TMailMessageItem
 	mailSender gomail.SendCloser
+	mailMessage *gomail.Message
 }
 
 func (obj *TMailHandler) Init() {
 	obj.stopChannel = make(chan bool, 0)
 	obj.mailMessageItemChannel = make(chan *TMailMessageItem, 1000)
 	obj.mailSender = nil
+	obj.mailMessage = nil
 
 	go func() {
 		checkInterval := time.NewTicker(time.Second * CHECK_MAIL_CONNECTION_STATE_INTERVAL_SECONDS)
@@ -56,7 +58,6 @@ func (obj *TMailHandler) Init() {
 				Logger.Printf("got mail message %v", mailMessageItem)
 				obj.SenderMail(mailMessageItem)
 			default:
-				Logger.Print("mailHandler not found surplus mailMessageItem")
 				break F
 			}
 		}
@@ -109,14 +110,17 @@ func (obj *TMailHandler) SenderMail(mailMessageItem *TMailMessageItem) {
 		obj.mailSender = mailSender
 	}
 
-	m := gomail.NewMessage()
-	m.SetHeader("From", GConfig.MailUser)
-	m.SetHeader("To", mailMessageItem.To...)
-	m.SetHeader("Subject", mailMessageItem.Subject)
-	m.SetDateHeader("X-Date", time.Now())
-	m.SetBody("text/html", mailMessageItem.Content)
+	if obj.mailMessage == nil {
+		obj.mailMessage = gomail.NewMessage()
+	}
 
-	err := gomail.Send(obj.mailSender, m)
+	obj.mailMessage.SetHeader("From", GConfig.MailUser)
+	obj.mailMessage.SetHeader("To", mailMessageItem.To...)
+	obj.mailMessage.SetHeader("Subject", mailMessageItem.Subject)
+	obj.mailMessage.SetDateHeader("X-Date", time.Now())
+	obj.mailMessage.SetBody("text/html", mailMessageItem.Content)
+
+	err := gomail.Send(obj.mailSender, obj.mailMessage)
 	if err != nil {
 		Logger.Print(err)
 		obj.mailSender = nil
