@@ -16,14 +16,14 @@ type TMailMessageItem struct {
 
 type TMailHandler struct {
 	sync.Mutex
-	stopChannel chan bool
+	stopChannel chan int
 	mailMessageItemChannel chan *TMailMessageItem
 	mailSender gomail.SendCloser
 	mailMessage *gomail.Message
 }
 
 func (obj *TMailHandler) Init() {
-	obj.stopChannel = make(chan bool, 0)
+	obj.stopChannel = make(chan int, 0)
 	obj.mailMessageItemChannel = make(chan *TMailMessageItem, 1000)
 	obj.mailSender = nil
 	obj.mailMessage = nil
@@ -33,8 +33,8 @@ func (obj *TMailHandler) Init() {
 		defer func() {
 			Logger.Print("mailHandler will stop")
 			checkInterval.Stop()
-			close(obj.stopChannel)
 			close(obj.mailMessageItemChannel)
+			obj.stopChannel <- 1
 		}()
 
 	E:
@@ -61,8 +61,6 @@ func (obj *TMailHandler) Init() {
 				break F
 			}
 		}
-
-		obj.stopChannel <- true
 	}()
 }
 
@@ -144,9 +142,23 @@ func (obj *TMailHandler) Sender(to []string, subject string, content string) {
 }
 
 func (obj *TMailHandler) Stop() {
-	obj.stopChannel <- true
-	<- obj.stopChannel
+S:
+	obj.stopChannel <- 0
 
+	for {
+		n, ok := <-obj.stopChannel
+		if !ok {
+			break
+		}
+
+		if n > 0 {
+			break
+		} else {
+			goto S
+		}
+	}
+
+	close(obj.stopChannel)
 	Logger.Print("mailHandler stopped")
 }
 
