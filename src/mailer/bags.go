@@ -50,7 +50,21 @@ func (obj *mailerRedisHandler) Hmset(name string, values map[string][]byte) (err
 		return errors.New("not found params `Content`")
 	}
 
-	go GmailHandler.Sender(strings.Split(string(values["To"]), ","), string(values["Subject"]), string(values["Content"]))
+	if _, ok := values["Cc"]; !ok {
+		values["Cc"] = []byte("")
+	}
+
+	if _, ok := values["Attach"]; !ok {
+		values["Attach"] = []byte("")
+	}
+
+	go GmailHandler.Sender(
+		strings.Split(string(values["To"]), ","),
+		strings.Split(string(values["Cc"]), ","),
+		string(values["Subject"]),
+		string(values["Content"]),
+		strings.Split(string(values["Attach"]), ","),
+	)
 
 	return nil
 }

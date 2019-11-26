@@ -8,8 +8,10 @@ import (
 
 type TMailMessageItem struct {
 	To []string
+	Cc []string
 	Subject string
 	Content string
+	Attach []string
 	Time time.Time
 	FailNum int
 }
@@ -114,9 +116,18 @@ func (obj *TMailHandler) SenderMail(mailMessageItem *TMailMessageItem) {
 
 	obj.mailMessage.SetHeader("From", GConfig.MailUser)
 	obj.mailMessage.SetHeader("To", mailMessageItem.To...)
+	if len(mailMessageItem.Cc) > 0 {
+		obj.mailMessage.SetHeader("Cc", mailMessageItem.Cc...)
+	}
 	obj.mailMessage.SetHeader("Subject", mailMessageItem.Subject)
 	obj.mailMessage.SetDateHeader("X-Date", time.Now())
 	obj.mailMessage.SetBody("text/html", mailMessageItem.Content)
+
+	if len(mailMessageItem.Attach) >0 {
+		for _, af := range mailMessageItem.Attach {
+			obj.mailMessage.Attach(af)
+		}
+	}
 
 	err := gomail.Send(obj.mailSender, obj.mailMessage)
 	if err != nil {
@@ -129,11 +140,13 @@ func (obj *TMailHandler) SenderMail(mailMessageItem *TMailMessageItem) {
 	Logger.Printf("send mail %v success", mailMessageItem)
 }
 
-func (obj *TMailHandler) Sender(to []string, subject string, content string) {
+func (obj *TMailHandler) Sender(to []string, cc []string, subject string, content string, attaches []string) {
 	mailMessageItem := &TMailMessageItem{
 		To:to,
+		Cc:cc,
 		Subject:subject,
 		Content:content,
+		Attach:attaches,
 		Time:time.Now(),
 		FailNum:0,
 	}
