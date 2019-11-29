@@ -2,6 +2,8 @@ package mailer
 
 import (
 	"github.com/go-gomail/gomail"
+	"mime"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -18,6 +20,7 @@ type TMailMessageItem struct {
 
 type TMailHandler struct {
 	sync.Mutex
+	stopped chan int
 	stopChannel chan int
 	mailMessageItemChannel chan *TMailMessageItem
 	mailSender gomail.SendCloser
@@ -25,6 +28,7 @@ type TMailHandler struct {
 }
 
 func (obj *TMailHandler) Init() {
+	obj.stopped = make(chan int)
 	obj.stopChannel = make(chan int)
 	obj.mailMessageItemChannel = make(chan *TMailMessageItem, 1000)
 	obj.mailSender = nil
@@ -37,6 +41,7 @@ func (obj *TMailHandler) Init() {
 			checkInterval.Stop()
 			close(obj.mailMessageItemChannel)
 			close(obj.stopChannel)
+			obj.stopped <- 1
 		}()
 
 	E:
@@ -125,7 +130,9 @@ func (obj *TMailHandler) SenderMail(mailMessageItem *TMailMessageItem) {
 
 	if len(mailMessageItem.Attach) >0 {
 		for _, af := range mailMessageItem.Attach {
-			obj.mailMessage.Attach(af)
+			//附件中文名 https://github.com/go-gomail/gomail/issues/66
+			baseName := mime.QEncoding.Encode("utf-8", filepath.Base(af))
+			obj.mailMessage.Attach(af, gomail.Rename(baseName))
 		}
 	}
 
@@ -156,6 +163,8 @@ func (obj *TMailHandler) Sender(to []string, cc []string, subject string, conten
 
 func (obj *TMailHandler) Stop() {
 	obj.stopChannel <- 0
+	<- obj.stopped
+	close(obj.stopped)
 	Logger.Print("mailHandler stopped")
 }
 
